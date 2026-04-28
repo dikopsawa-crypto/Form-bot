@@ -3,7 +3,16 @@ const db = require("./db");
 
 const TOKEN = process.env.BOT_TOKEN;
 const BASE_URL = process.env.BASE_URL;
-const bot = new TelegramBot(TOKEN, { polling: true });
+const bot = new TelegramBot(TOKEN, { 
+  polling: {
+    interval: 300,
+    autoStart: true,
+    params: { timeout: 10 }
+  }
+});
+
+process.once('SIGINT', () => bot.stopPolling());
+process.once('SIGTERM', () => bot.stopPolling());
 
 const BANK_COLUMNS = {
   bca: {
