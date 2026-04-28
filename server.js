@@ -9,14 +9,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Init database
 db.initDB().then(() => {
   console.log("✅ Database siap");
 }).catch(err => {
   console.error("DB Error:", err);
 });
 
-// API: Ambil info form
 app.get("/api/form/:formId", async (req, res) => {
   try {
     const form = await db.getForm(req.params.formId);
@@ -29,7 +27,6 @@ app.get("/api/form/:formId", async (req, res) => {
   }
 });
 
-// API: Submit form
 app.post("/api/form/:formId/submit", async (req, res) => {
   try {
     const form = await db.getForm(req.params.formId);
@@ -42,7 +39,6 @@ app.post("/api/form/:formId/submit", async (req, res) => {
   }
 });
 
-// API: Lihat submissions
 app.get("/api/form/:formId/submissions", async (req, res) => {
   try {
     const submissions = await db.getSubmissions(req.params.formId);
@@ -52,7 +48,6 @@ app.get("/api/form/:formId/submissions", async (req, res) => {
   }
 });
 
-// Route form
 app.get("/form/:formId", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "form.html"));
 });
@@ -62,5 +57,4 @@ app.listen(PORT, () => {
   console.log(`🚀 Server berjalan di port ${PORT}`);
 });
 
-// Start bot
 require("./bot");
