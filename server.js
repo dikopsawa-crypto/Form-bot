@@ -3,7 +3,6 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const db = require("./db");
-const bot = require("./bot");
 
 const app = express();
 app.use(cors());
@@ -13,6 +12,8 @@ app.use(express.static(path.join(__dirname, "public")));
 // Init database
 db.initDB().then(() => {
   console.log("✅ Database siap");
+}).catch(err => {
+  console.error("DB Error:", err);
 });
 
 // API: Ambil info form
@@ -23,6 +24,7 @@ app.get("/api/form/:formId", async (req, res) => {
     form.columns = JSON.parse(form.columns);
     res.json(form);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -32,14 +34,10 @@ app.post("/api/form/:formId/submit", async (req, res) => {
   try {
     const form = await db.getForm(req.params.formId);
     if (!form) return res.status(404).json({ error: "Form tidak ditemukan" });
-
     await db.saveSubmission(req.params.formId, req.body);
-
-    // Kirim notifikasi ke Telegram
-    bot.notifySubmission(req.params.formId, form.bank, req.body);
-
     res.json({ success: true, message: "Data berhasil disimpan!" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -54,7 +52,15 @@ app.get("/api/form/:formId/submissions", async (req, res) => {
   }
 });
 
+// Route form
+app.get("/form/:formId", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "form.html"));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server berjalan di port ${PORT}`);
 });
+
+// Start bot
+require("./bot");
