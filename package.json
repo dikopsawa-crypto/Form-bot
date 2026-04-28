@@ -1,0 +1,11 @@
+{
+  "name": "telegram-form-bot",
+  "version": "1.0.0",
+  "main": "telegram_form_bot.js",
+  "scripts": {
+    "start": "node telegram_form_bot.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
