@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Pengisian Data Bank</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container {
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 30px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .bank-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .badge-bca { background: #e8f0fe; color: #003087; }
+  .badge-cimb { background: #fde8e8; color: #c8102e; }
+  h1 { font-size: 22px; color: #1a1a2e; margin-bottom: 6px; }
+  .subtitle { color: #666; font-size: 14px; }
+  .form-group { margin-bottom: 18px; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  input, select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e8e8e8;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: border 0.2s;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: #667eea; }
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .success {
+    display: none;
+    text-align: center;
+    padding: 30px;
+  }
+  .success-icon { font-size: 60px; margin-bottom: 16px; }
+  .success h2 { color: #2d6a4f; margin-bottom: 8px; }
+  .success p { color: #666; font-size: 14px; }
+  .error-msg {
+    background: #fde8e8;
+    color: #c8102e;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .loading { display: none; text-align: center; padding: 40px; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #e8e8e8;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Memuat form...</p>
+  </div>
+
+  <div id="form-content" style="display:none">
+    <div class="header">
+      <div id="bank-badge" class="bank-badge"></div>
+      <h1>Form Pengisian Data</h1>
+      <p class="subtitle">Isi data dengan lengkap dan benar</p>
+    </div>
+    <div id="error-msg" class="error-msg"></div>
+    <div id="fields"></div>
+    <button class="btn-submit" id="btn-submit" onclick="submitForm()">
+      Kirim Data ✉️
+    </button>
+  </div>
+
+  <div id="success" class="success">
+    <div class="success-icon">✅</div>
+    <h2>Data Berhasil Dikirim!</h2>
+    <p>Terima kasih, data Anda telah tersimpan.</p>
+  </div>
+
+  <div id="not-found" style="display:none; text-align:center; padding:40px">
+    <div style="font-size:60px">❌</div>
+    <h2 style="color:#c8102e; margin:16px 0 8px">Form Tidak Ditemukan</h2>
+    <p style="color:#666">Link form tidak valid atau sudah kadaluarsa.</p>
+  </div>
+</div>
+
+<script>
+const COLUMN_TYPES = {
+  email: "email",
+  no_hp: "tel",
+  saldo: "number",
+  tanggal: "date",
+  nik: "number",
+};
+
+const formId = window.location.pathname.split("/").pop();
+let formData = null;
+
+async function loadForm() {
+  document.getElementById("loading").style.display = "block";
+  try {
+    const res = await fetch(`/api/form/${formId}`);
+    if (!res.ok) throw new Error("Not found");
+    formData = await res.json();
+    renderForm();
+  } catch {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("not-found").style.display = "block";
+  }
+}
+
+function renderForm() {
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("form-content").style.display = "block";
+
+  const badge = document.getElementById("bank-badge");
+  if (formData.bank === "bca") {
+    badge.textContent = "🏦 Bank BCA";
+    badge.className = "bank-badge badge-bca";
+  } else {
+    badge.textContent = "🏛️ CIMB Niaga";
+    badge.className = "bank-badge badge-cimb";
+  }
+
+  const fields = document.getElementById("fields");
+  const columns = formData.columns;
+
+  const LABELS = {
+    nama: "Nama Lengkap", nik: "NIK / No. KTP",
+    no_rekening: "Nomor Rekening", nama_rekening: "Nama di Rekening",
+    no_hp: "Nomor HP", email: "Email", alamat: "Alamat",
+    kota: "Kota", cabang: "Cabang Bank", jenis_akun: "Jenis Akun",
+    saldo: "Saldo Awal (Rp)", tanggal: "Tanggal Pembukaan", swift: "Kode SWIFT"
+  };
+
+  columns.forEach(col => {
+    const div = document.createElement("div");
+    div.className = "form-group";
+    const type = COLUMN_TYPES[col] || "text";
+    div.innerHTML = `
+      <label for="${col}">${LABELS[col] || col}</label>
+      <input type="${type}" id="${col}" name="${col}"
+        placeholder="Masukkan ${LABELS[col] || col}" required />
+    `;
+    fields.appendChild(div);
+  });
+}
+
+async function submitForm() {
+  const btn = document.getElementById("btn-submit");
+  const errDiv = document.getElementById("error-msg");
+  errDiv.style.display = "none";
+
+  const data = {};
+  let valid = true;
+
+  formData.columns.forEach(col => {
+    const val = document.getElementById(col)?.value?.trim();
+    if (!val) valid = false;
+    else data[col] = val;
+  });
+
+  if (!valid) {
+    errDiv.textContent = "⚠️ Harap isi semua kolom yang tersedia.";
+    errDiv.style.display = "block";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Mengirim...";
+
+  try {
+    const res = await fetch(`/api/form/${formId}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error();
+    document.getElementById("form-content").style.display = "none";
+    document.getElementById("success").style.display = "block";
+  } catch {
+    errDiv.textContent = "❌ Gagal mengirim data. Coba lagi.";
+    errDiv.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "Kirim Data ✉️";
+  }
+}
+
+loadForm();
+</script>
+</body>
+</html>
